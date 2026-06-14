@@ -326,8 +326,8 @@
       <div class="nav-div"></div>
       <div class="col-section-label">Disclaff</div>
       <div class="nav-tab" id="tab-disputes" onclick="showPanel('disputes',this)">⚖ DISPUTES <span class="nav-badge gold" id="badge-disputes">0</span></div>
-      <div class="nav-tab" id="tab-card-issued" onclick="showPanel('card-issued',this)">🃏 CARD ISSUED <span class="nav-badge gold" id="badge-card-issued">0</span></div>
       <div class="nav-tab" id="tab-dispute-resolved" onclick="showPanel('dispute-resolved',this)">✅ DISPUTE RESOLVED <span class="nav-badge gold" id="badge-dispute-resolved">0</span></div>
+      <div class="nav-tab" id="tab-card-issued" onclick="showPanel('card-issued',this)">🃏 CARD ISSUED <span class="nav-badge gold" id="badge-card-issued">0</span></div>
 
       <div class="nav-div"></div>
       <div class="col-section-label">Stripe</div>
@@ -637,13 +637,30 @@
             <span style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.2em;color:var(--cyan);">LETTER TEMPLATES</span>
           </div>
           <!-- Select all row — separate, below envelope -->
-          <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:9px 16px;border-bottom:1px solid rgba(0,255,238,.06);">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(255,255,255,.5);letter-spacing:.1em;">
-              <input type="checkbox" id="dispute-select-all" onchange="toggleSelectAllDisputes(this.checked)" style="width:14px;height:14px;accent-color:var(--cyan);cursor:pointer;">
-              SELECT ALL
-            </label>
-            <span id="dispute-selected-count" style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(255,255,255,.3);">0 SELECTED</span>
-            <button class="act-btn act-restore" style="font-size:10px;padding:5px 14px;" onclick="sendBulkDisputeLetter()">SEND TO SELECTED</button>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid rgba(0,255,238,.06);flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(255,255,255,.5);letter-spacing:.1em;">
+                <input type="checkbox" id="dispute-select-all" onchange="toggleSelectAllDisputes(this.checked)" style="width:14px;height:14px;accent-color:var(--cyan);cursor:pointer;">
+                SELECT ALL
+              </label>
+              <span id="dispute-selected-count" style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(255,255,255,.3);">0 SELECTED</span>
+              <button class="act-btn act-restore" style="font-size:10px;padding:5px 14px;" onclick="sendBulkDisputeLetter()">SEND TO SELECTED</button>
+            </div>
+          </div>
+          <!-- R — RESOLVE BAR -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid rgba(255,34,68,.1);background:rgba(255,34,68,.02);flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(255,34,68,.5);color:#ff4466;display:flex;align-items:center;justify-content:center;flex-shrink:0;">R</span>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.15em;color:rgba(255,34,68,.7);">RESOLVE</span>
+              <span id="dispute-resolve-count" style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(255,255,255,.3);">0 SELECTED</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.1em;">
+                <input type="checkbox" id="dispute-resolve-select-all" onchange="toggleSelectAllResolve(this.checked)" style="width:14px;height:14px;accent-color:#ff4466;cursor:pointer;">
+                SELECT ALL
+              </label>
+              <button id="send-resolved-btn" class="act-btn" style="font-size:10px;padding:5px 14px;border-color:rgba(255,34,68,.3);color:#ff4466;background:rgba(255,34,68,.06);" onclick="markSelectedResolved()">SEND RESOLVED</button>
+            </div>
           </div>
 
           <!-- Letter panel — hidden until envelope clicked -->
@@ -1992,11 +2009,12 @@ function renderDisputes(){
     let block = `<div style="margin-bottom:12px;border:1px solid ${borderColor};border-radius:4px;overflow:hidden;">
       <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${bgColor};border-bottom:1px solid rgba(255,204,0,.06);flex-wrap:wrap;">
         <input type="checkbox" class="${isResolved?'dispute-resolved-check':'dispute-user-check'}" data-username="${username}" onchange="${isResolved?`toggleResolvedDisputeUser('${username}',this.checked)`:`toggleDisputeUser('${username}',this.checked)`}" style="width:15px;height:15px;accent-color:${isResolved?'#ff4466':'var(--gold)'};cursor:pointer;flex-shrink:0;">
+        ${!isResolved ? `<input type="checkbox" class="dispute-resolve-check" data-username="${username}" onchange="toggleResolveUser(this.dataset.username,this.checked)" style="width:15px;height:15px;accent-color:#ff4466;cursor:pointer;flex-shrink:0;" title="Mark for resolve">` : ''}
         <span ${!isResolved?`onclick="toggleDisputePersonalReply('${username}')" title="Click to write personal reply" style="cursor:pointer;"`:'style="cursor:default;"'} style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.15em;color:${isResolved?'rgba(255,255,255,.3)':'var(--gold)'};">⚖ ${username}</span>
         ${uEmail ? `<span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(255,204,0,.4);">✉ ${uEmail}</span>` : ''}
         <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(255,255,255,.2);">${msgs.length} MSG${msgs.length>1?'S':''}</span>
-        <span style="margin-left:auto;display:flex;gap:6px;">
-          
+        <span style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+
         </span>
       </div>`;
 
@@ -2043,13 +2061,79 @@ The HEXA Team</textarea>
   const pendingGrouped = groupByUsername(pending);
   if(Object.keys(pendingGrouped).length){
     html += `<div style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.2em;color:var(--gold);padding:6px 0 10px;">⚡ PENDING (${pending.length})</div>`;
-    Object.keys(pendingGrouped).sort().forEach(u=>{ html += buildUserBlock(u, pendingGrouped[u], false); });
+    Object.keys(pendingGrouped).sort((a,b)=>pendingGrouped[b].length-pendingGrouped[a].length).forEach(u=>{ html += buildUserBlock(u, pendingGrouped[u], false); });
   }
 
   // Resolved disputes are in the DISPUTE RESOLVED panel
 
   container.innerHTML = html;
   updateDisputeSelectedCount();
+}
+
+// ── R — RESOLVE SYSTEM ──
+const resolveTagged = new Set();
+
+function toggleResolveUser(username, checked){
+  if(checked) resolveTagged.add(username);
+  else resolveTagged.delete(username);
+  // Sync select all checkbox
+  const all = document.querySelectorAll('.dispute-resolve-check');
+  const allChecked = [...all].every(cb=>cb.checked);
+  const saEl = document.getElementById('dispute-resolve-select-all');
+  if(saEl) saEl.checked = allChecked;
+  updateResolveCount();
+}
+
+function toggleSelectAllResolve(checked){
+  resolveTagged.clear();
+  document.querySelectorAll('.dispute-resolve-check').forEach(cb=>{
+    cb.checked = checked;
+    if(checked) resolveTagged.add(cb.dataset.username);
+  });
+  updateResolveCount();
+}
+
+function updateResolveCount(){
+  const el = document.getElementById('dispute-resolve-count');
+  if(el) el.textContent = resolveTagged.size+' SELECTED';
+}
+
+function toggleResolveTag(username){}
+
+async function markSelectedResolved(){
+  if(!resolveTagged.size){ showToast('No users tagged for resolve','error'); return; }
+  const ids = allDisputes
+    .filter(d=>resolveTagged.has(d.username) && d.status==='pending')
+    .map(d=>d.id);
+  if(!ids.length){ showToast('Nothing to resolve','error'); return; }
+  try {
+    for(const id of ids){
+      await fetch(SB_URL+'/rest/v1/disputes?id=eq.'+id, {
+        method:'PATCH', headers:SB_HEADERS,
+        body: JSON.stringify({ status:'resolved', reviewed_at: new Date().toISOString() })
+      });
+    }
+    // Flash SEND RESOLVED green
+    const srBtn = document.getElementById('send-resolved-btn');
+    if(srBtn){
+      srBtn.style.borderColor = 'rgba(0,255,136,.5)';
+      srBtn.style.color = 'rgba(0,255,136,.9)';
+      srBtn.style.background = 'rgba(0,255,136,.08)';
+      setTimeout(()=>{
+        srBtn.style.borderColor = 'rgba(255,255,255,.15)';
+        srBtn.style.color = 'rgba(255,255,255,.3)';
+        srBtn.style.background = 'transparent';
+      }, 2000);
+    }
+    showToast('Moved '+resolveTagged.size+' user(s) to resolved');
+    resolveTagged.clear();
+    document.querySelectorAll('.dispute-resolve-check').forEach(cb=>cb.checked=false);
+    const saEl = document.getElementById('dispute-resolve-select-all');
+    if(saEl) saEl.checked = false;
+    updateResolveCount();
+    loadDisputes();
+    loadDisputeResolved();
+  } catch(e){ showToast('Failed','error'); }
 }
 
 // ── RESOLVED DISPUTE DELETION ──

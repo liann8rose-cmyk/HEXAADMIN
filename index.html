@@ -2034,7 +2034,7 @@ async function loadAll(){
 // ── LOAD USERS ──
 async function loadUsers(){
   try {
-    const res = await fetchOK(SB_URL+'/rest/v1/registered_users?select=*&order=created_at.desc', { headers:_adminAuthHeaders() });
+    const res = await fetchOK(SB_URL+'/rest/v1/registered_users_admin?select=*&order=created_at.desc', { headers:_adminAuthHeaders() });
     allUsers = await res.json();
     const br = await fetchOK(SB_URL+'/rest/v1/flagged_content?select=username,status', { headers:_adminAuthHeaders() });
     const flagsRaw = await br.json();
@@ -2616,7 +2616,7 @@ async function loadDisputes(){
     disputeEmailMap = {};
     if(usernames.length){
       const q = usernames.map(u=>'username=eq.'+encodeURIComponent(u)).join(',');
-      const uRes = await fetchOK(SB_URL+'/rest/v1/registered_users?or=('+q+')&select=username,email,full_name', { headers:_adminAuthHeaders() });
+      const uRes = await fetchOK(SB_URL+'/rest/v1/registered_users_admin?or=('+q+')&select=username,email,full_name', { headers:_adminAuthHeaders() });
       const uData = await uRes.json().catch(()=>[]);
       if(Array.isArray(uData)) uData.forEach(u=>{ disputeEmailMap[u.username] = { email:u.email, full_name:u.full_name }; });
     }
@@ -2653,7 +2653,7 @@ async function autoReplyPayment(s){
       (s.billing_email && m.billing_email && s.billing_email.toLowerCase() === m.billing_email.toLowerCase())
     );
     if(!verified) return;
-    const uRes = await fetchOK(SB_URL+'/rest/v1/registered_users?username=eq.'+encodeURIComponent(s.username)+'&select=full_name&limit=1', { headers:_adminAuthHeaders() });
+    const uRes = await fetchOK(SB_URL+'/rest/v1/registered_users_admin?username=eq.'+encodeURIComponent(s.username)+'&select=full_name&limit=1', { headers:_adminAuthHeaders() });
     const uData = await uRes.json().catch(()=>[]);
     const firstName = (uData[0]?.full_name||s.username||'').split(' ')[0];
     const autoReply = `Hi ${firstName},\n\nThank you for reaching out — we completely understand your concern and want to reassure you.\n\nYour payment was not successfully processed, which means no charge was finalised on our end. However, some banks place a temporary hold on the amount during the authorisation process, even when a transaction doesn't complete. This is standard banking practice and is entirely outside our control.\n\nIn most cases this hold releases within 3–15 business days. If it hasn't cleared after that, we recommend contacting your bank directly as timelines can vary — some institutions may take longer depending on their internal policies.\n\nYou have not been charged by HEXA, and your funds will be returned to your available balance automatically.\n\nWe're sorry for any inconvenience this may have caused. If you have any further questions, we're here to help.\n\nThe HEXA Team`;
@@ -2962,7 +2962,7 @@ async function sendBulkGenericLetter(prefix){
     try {
       await fetchOK(SB_URL+'/functions/v1/send-email-', {
         method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+SB_KEY },
+        headers:{ ..._adminAuthHeaders() },
         body: JSON.stringify({ to: email, subject, body, reply_to: "noreply@resend.dev" })
       });
       sent++;
@@ -3082,7 +3082,7 @@ async function sendBulkDisputeLetter(){
     try {
       await fetchOK(SB_URL+'/functions/v1/send-email-', {
         method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+SB_KEY },
+        headers:{ ..._adminAuthHeaders() },
         body: JSON.stringify({ to: uInfo.email, subject, body: personalBody, reply_to: "noreply@resend.dev" })
       });
       sent++;
@@ -3455,7 +3455,7 @@ async function bulkHardDeleteUsers(){
 
 async function banUser(username){
   try {
-    const uRes = await fetchOK(SB_URL+'/rest/v1/registered_users?username=eq.'+encodeURIComponent(username)+'&select=id,email,full_name&limit=1', { headers:_adminAuthHeaders() });
+    const uRes = await fetchOK(SB_URL+'/rest/v1/registered_users_admin?username=eq.'+encodeURIComponent(username)+'&select=id,email,full_name&limit=1', { headers:_adminAuthHeaders() });
     const uData = await uRes.json().catch(()=>[]);
     const userId = uData[0]?.id;
     const query = userId ? 'id=eq.'+userId : 'username=ilike.'+encodeURIComponent(username);
@@ -3544,7 +3544,7 @@ async function sendDisputeReply(username, email, disputeId){
     if(email){
       await fetchOK(SB_URL+'/functions/v1/send-email-', {
         method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+SB_KEY },
+        headers:{ ..._adminAuthHeaders() },
         body: JSON.stringify({ to: email, subject, body, reply_to: "noreply@resend.dev" })
       });
     }
@@ -3639,7 +3639,7 @@ async function sendSupportReply(topicKey, username, email, supportId){
     if(email){
       await fetchOK(SB_URL+'/functions/v1/send-email-', {
         method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+SB_KEY },
+        headers:{ ..._adminAuthHeaders() },
         body: JSON.stringify({ to: email, subject, body, reply_to: "noreply@resend.dev" })
       });
     }
@@ -3743,7 +3743,7 @@ async function sendBulkTopicLetter(prefix){
     try {
       await fetchOK(SB_URL+'/functions/v1/send-email-', {
         method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+SB_KEY },
+        headers:{ ..._adminAuthHeaders() },
         body: JSON.stringify({ to: row.email, subject, body, reply_to: "noreply@resend.dev" })
       });
       sent++;
@@ -3969,7 +3969,7 @@ async function confirmSendLetter(panelId){
   try {
     // Fetch emails for selected users
     const ids = selected.map(id => 'id=eq.'+encodeURIComponent(id)).join(',');
-    const res = await fetchOK(SB_URL+'/rest/v1/registered_users?or=('+ids+')&select=email,full_name', { headers:_adminAuthHeaders() });
+    const res = await fetchOK(SB_URL+'/rest/v1/registered_users_admin?or=('+ids+')&select=email,full_name', { headers:_adminAuthHeaders() });
     const users = await res.json();
 
     // Send email to each user via edge function
@@ -3978,7 +3978,7 @@ async function confirmSendLetter(panelId){
       const personalBody = body.replace(/\[name\]/g, u.full_name || u.email);
       await fetchOK(SB_URL+'/functions/v1/send-email-', {
         method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+SB_KEY },
+        headers:{ ..._adminAuthHeaders() },
         body: JSON.stringify({ to: u.email, subject, body: personalBody, reply_to: "noreply@resend.dev" })
       });
       sent++;
@@ -4430,7 +4430,7 @@ async function deleteSelectedPayments(){
 let allBanned = [];
 async function loadBanned(){
   try {
-    const res = await fetchOK(SB_URL+'/rest/v1/registered_users?blocked=eq.true&select=username,email,flag,country,last_login,created_at,deleted_at,id&order=deleted_at.desc', { headers:_adminAuthHeaders() });
+    const res = await fetchOK(SB_URL+'/rest/v1/registered_users_admin?blocked=eq.true&select=username,email,flag,country,last_login,created_at,deleted_at,id&order=deleted_at.desc', { headers:_adminAuthHeaders() });
     allBanned = await res.json();
     if(!Array.isArray(allBanned)) allBanned = [];
   } catch(e){ allBanned = []; }
@@ -4522,7 +4522,7 @@ async function activateJailbreakManual(supportId, username, email){
         body: JSON.stringify({ activated: true })
       });
     // Get first name for letter
-    const uRes = await fetchOK(SB_URL+'/rest/v1/registered_users?username=eq.'+encodeURIComponent(username)+'&select=full_name&limit=1', { headers:_adminAuthHeaders() });
+    const uRes = await fetchOK(SB_URL+'/rest/v1/registered_users_admin?username=eq.'+encodeURIComponent(username)+'&select=full_name&limit=1', { headers:_adminAuthHeaders() });
     const uData = await uRes.json().catch(()=>[]);
     const firstName = (uData[0]?.full_name||username||'').split(' ')[0];
     const letter = `Hi ${firstName},\n\nWe sincerely apologise for the delay in activating your Jailbreak card on HEXA. A technical issue during payment processing prevented it from activating automatically.\n\nYour Jailbreak card has now been manually activated. You should be able to use it immediately.\n\nWe are sorry for the inconvenience and thank you for your patience.\n\nThe HEXA Team`;
@@ -4621,7 +4621,7 @@ async function activateU2UManual(supportId, senderUsername, senderEmail, message
         body: JSON.stringify({ activated: true, target_username: targetUsername })
       });
     // Get sender first name for letter
-    const uRes = await fetchOK(SB_URL+'/rest/v1/registered_users?username=eq.'+encodeURIComponent(senderUsername)+'&select=full_name&limit=1', { headers:_adminAuthHeaders() });
+    const uRes = await fetchOK(SB_URL+'/rest/v1/registered_users_admin?username=eq.'+encodeURIComponent(senderUsername)+'&select=full_name&limit=1', { headers:_adminAuthHeaders() });
     const uData = await uRes.json().catch(()=>[]);
     const firstName = (uData[0]?.full_name||senderUsername||'').split(' ')[0];
     const letter = `Hi ${firstName},\n\nWe sincerely apologise for the delay in delivering your U2U card on HEXA. A technical issue during payment processing prevented it from being sent automatically.\n\nYour card has now been manually delivered to @${targetUsername}. They will receive it on their end.\n\nWe are sorry for the inconvenience and thank you for your patience.\n\nThe HEXA Team`;
